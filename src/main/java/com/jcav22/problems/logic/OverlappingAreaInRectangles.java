@@ -5,21 +5,20 @@ import com.jcav22.problems.model.Rectangle;
 import static java.lang.Math.max;
 import static java.lang.Math.min;
 
-public class OverlappingAreaInRectangles {
+class OverlappingAreaInRectangles {
 
-    public static int getOverlappingArea(Rectangle r1, Rectangle r2) {
-        return getOverlappingBase(r1, r2) * getOverlappingHeight(r1, r2);
+    static int getOverlappingArea(Rectangle r1, Rectangle r2) {
+        int base = calculateSide().apply(r1.getX2(), r2.getX2(), r1.getX1(), r2.getX1());
+        int height = calculateSide().apply(r1.getY2(), r2.getY2(), r1.getY1(), r2.getY1());
+        return base * height;
     }
 
-    private static int getOverlappingBase(Rectangle rectangle1, Rectangle rectangle2) {
-        int xRight = min(rectangle1.getX2() ,rectangle2.getX2());
-        int xLeft = max(rectangle1.getX1(), rectangle2.getX1());
-        return xRight - xLeft;
+    @FunctionalInterface
+    interface CalculateSideOverlap {
+        int apply(int r1x2, int r2x2, int r1x1, int r2x1);
     }
 
-    private static int getOverlappingHeight(Rectangle rectangle1, Rectangle rectangle2) {
-        int yTop = min(rectangle1.getY2(), rectangle2.getY2());
-        int yBottom = max(rectangle1.getY1(), rectangle2.getY1());
-        return yTop - yBottom;
+    private static CalculateSideOverlap calculateSide() {
+        return (r1x2, r2x2, r1x1, r2x1) -> min(r1x2, r2x2) - max(r1x1, r2x1);
     }
 }
