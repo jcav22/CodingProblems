@@ -1,9 +1,10 @@
 package com.jcav22.problems.datastructures;
 
 import java.util.Stack;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class TransactionalStack {
-    private int transactionId = 0;
+    private static AtomicInteger transactionId = new AtomicInteger(0);
 
     private Stack<Integer> content;
     private Stack<Transaction> transactions;
@@ -17,7 +18,7 @@ public class TransactionalStack {
         if (transactions.isEmpty()) {
             content.push(value);
         } else {
-            transactions.peek().content.push(value);
+            transactions.peek().push(value);
         }
     }
 
@@ -38,12 +39,12 @@ public class TransactionalStack {
                 content.pop();
             }
         } else {
-            transactions.peek().content.pop();
+            transactions.peek().pop();
         }
     }
 
     public void begin() {
-        transactions.push(new Transaction(++transactionId, content));
+        transactions.push(new Transaction(transactionId.addAndGet(1), content));
     }
 
     public boolean rollback() {
@@ -58,71 +59,43 @@ public class TransactionalStack {
         if (transactions.isEmpty()) {
             return false;
         }
-        content = transactions.pop().content;
+        Stack<Integer> committedContent = (Stack<Integer>) transactions.pop().transactionContent.clone();
+
+        if (transactions.isEmpty()) {
+            this.content = committedContent;
+        } else {
+            transactions.peek().transactionContent = committedContent;
+        }
+
         return true;
     }
 
     static class Transaction {
-        public int id;
-        private Stack<Integer> content;
+        private int id;
+        private Stack<Integer> transactionContent;
 
         public Transaction(int id, Stack content) {
             this.id = id;
-            this.content = (Stack<Integer>) content.clone();
+            this.transactionContent = (Stack<Integer>) content.clone();
+        }
+
+        public void pop() {
+            this.transactionContent.pop();
         }
 
         public void push(int element) {
-            this.content.push(element);
+            this.transactionContent.push(element);
         }
 
         public int peek() {
-            if (content.isEmpty()) {
+            if (this.transactionContent.isEmpty()) {
                 return 0;
             }
-            return content.peek();
+            return this.transactionContent.peek();
         }
-    }
 
-    public static void test() {
-        TransactionalStack sol = new TransactionalStack();
-        sol.push(42);
-        assert sol.top() == 42 : "top() should be 42";
-    }
-
-    public static void example1() {
-        TransactionalStack sol = new TransactionalStack();
-        sol.push(5);
-        sol.push(2);              // stack: [5,2]
-        assert sol.top() == 2;
-        sol.pop();                      // stack: [5]
-        assert sol.top() == 5;
-
-        TransactionalStack sol2 = new TransactionalStack();
-        assert sol2.top() == 0;         // top of an empty stack is 0
-        sol2.pop();                     // pop should do nothing
-    }
-
-    public static void example2() {
-        TransactionalStack sol = new TransactionalStack();
-        sol.push(4);
-        sol.begin();                    // start transaction 1
-        sol.push(7);                    // stack: [4,7]
-        sol.begin();                    // start transaction 2
-        sol.push(2);                    // stack: [4,7,2]
-        assert sol.rollback() == true;  // rollback transaction 2
-        assert sol.top() == 7;          // stack: [4,7]
-        sol.begin();                    // start transaction 3
-        sol.push(10);                   // stack: [4,7,10]
-        assert sol.commit() == true;    // transaction 3 is committed
-        assert sol.top() == 10;
-        assert sol.rollback() == true;  // rollback transaction 1
-        assert sol.top() == 4;          // stack: [4]
-        assert sol.commit() == false;   // there is no open transaction
-    }
-
-    public static void main(String[] args) {
-        test();
-        example1();
-        example2();
+        public int getId() {
+            return this.id;
+        }
     }
 }
